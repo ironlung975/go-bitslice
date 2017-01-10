@@ -53,6 +53,31 @@ func (t *BitSlice) Set(index int) error {
 	return nil
 }
 
+func (t *BitSlice) Or(bslice *BitSlice) {
+	if len(bslice.data) > len(t.data) {
+		diff := len(bslice.data) - len(t.data)
+		pre := make([]byte, diff)
+		t.data = append(pre, t.data...)
+	}
+
+	for i, b := range bslice.data {
+		t.data[i] |= b
+	}
+}
+
+func (t *BitSlice) And(bslice *BitSlice) {
+	// Note: overflow bits on the larger of the two slices
+	// will be zeroed out
+	if len(bslice.data) > len(t.data) {
+		pre := bslice.data[len(t.data):]
+		t.data = append(pre, t.data...)
+	}
+
+	for i, b := range bslice.data {
+		t.data[i] &= b
+	}
+}
+
 func (t *BitSlice) Unset(index int) error {
 	if index < 0 || index > t.length-1 {
 		return fmt.Errorf("Index %d out of range", index)

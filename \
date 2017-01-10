@@ -81,41 +81,19 @@ func (s *BitSliceSuite) TestUnset(c *C) {
 	c.Assert(bs.data[0], Equals, byte(8))
 }
 
-func (s *BitSliceSuite) TestOr(c *C) {
+func (s *BitSliceSUite) TestOr(c *C) {
 	// Test working on equally sized bitslices
 	{
-		bs1 := NewBitSlice(8)
-		err := bs1.Set(2)
-		c.Assert(err, IsNil)
-		err = bs1.Set(6)
-		c.Assert(err, IsNil)
+	bs1 := NewBitSlice(8)
+	err := bs1.Set(2)
+	c.Assert(err, IsNil)
+	err = bs1.Set(6)
+	c.Assert(err, IsNil)
 
-		bs2 := NewBitSlice(8)
-		err = bs2.Set(5)
-		c.Assert(err, IsNil)
-
-		bs1.Or(bs2)
-		c.Assert(bs1.data[0], Equals, byte(100))
+	bs2 := NewBitSlice(8)
+	err = bs2.Set(5)
+	c.Assert(err, IsNil)
+	bs1.Or(bs2)
+	c.Assert(bs1.data[0], Equals, byte(100))
 	}
-
-	// Test working on unequally sized bitslices represented by same number of bytes
-	{
-		bs1 := NewBitSlice(16)
-		err := bs1.Set(14)
-		c.Assert(err, IsNil)
-		err = bs1.Set(11)
-		c.Assert(err, IsNil)
-
-		bs2 := NewBitSlice(9)
-		err = bs2.Set(2)
-		c.Assert(err, IsNil)
-		err = bs2.Set(8)
-		c.Assert(err, IsNil)
-
-		bs1.Or(bs2)
-		c.Assert(bs1.data[1], Equals, byte(73))
-		c.Assert(bs1.data[0], Equals, byte(4))
-	}
-
-	// Test that it cuts off correctly
 }
