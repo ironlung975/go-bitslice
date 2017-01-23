@@ -47,6 +47,22 @@ func (s *BitSliceSuite) TestUnusedSpace(c *C) {
 	c.Assert(bs3.unusedSpace(), Equals, 0)
 }
 
+func (s *BitSliceSuite) TestDeepcopy(c *C) {
+	bs := NewBitSlice(128)
+	err := bs.Set(0)
+	c.Assert(err, IsNil)
+	err = bs.Set(1)
+	c.Assert(err, IsNil)
+	err = bs.Set(66)
+	c.Assert(err, IsNil)
+
+	new := bs.Deepcopy()
+	c.Assert(new.length, Equals, bs.length)
+	c.Assert(new.data[1], Equals, bs.data[1])
+	c.Assert(new.data[0], Equals, bs.data[0])
+	c.Assert(new, Not(Equals), bs)
+}
+
 func (s *BitSliceSuite) TestSet(c *C) {
 	bs := NewBitSlice(96)
 	err := bs.Set(96)
@@ -81,41 +97,19 @@ func (s *BitSliceSuite) TestUnset(c *C) {
 	c.Assert(bs.data[0], Equals, uint64(8))
 }
 
-func (s *BitSliceSuite) TestOr(c *C) {
-	// Test working on equally sized bitslices
-	{
-		bs1 := NewBitSlice(64)
-		err := bs1.Set(2)
-		c.Assert(err, IsNil)
-		err = bs1.Set(6)
-		c.Assert(err, IsNil)
+func (s *BitSliceSuite) TestShiftLeft(c *C) {
+	bs := NewBitSlice(64)
+	err := bs.Set(0)
+	c.Assert(err, IsNil)
 
-		bs2 := NewBitSlice(64)
-		err = bs2.Set(5)
-		c.Assert(err, IsNil)
+	bs.ShiftLeft(1)
+	c.Assert(bs.data[0], Equals, uint64(2))
+	c.Assert(bs.length, Equals, 65)
+	c.Assert(len(bs.data), Equals, 2)
 
-		bs1.Or(bs2)
-		c.Assert(bs1.data[0], Equals, uint64(100))
-	}
-
-	// Test working on unequally sized bitslices represented by same number of buffers
-	{
-		bs1 := NewBitSlice(128)
-		err := bs1.Set(70)
-		c.Assert(err, IsNil)
-		err = bs1.Set(67)
-		c.Assert(err, IsNil)
-
-		bs2 := NewBitSlice(80)
-		err = bs2.Set(2)
-		c.Assert(err, IsNil)
-		err = bs2.Set(64)
-		c.Assert(err, IsNil)
-
-		bs1.Or(bs2)
-		c.Assert(bs1.data[1], Equals, uint64(73))
-		c.Assert(bs1.data[0], Equals, uint64(4))
-	}
-
-	// Test that it cuts off correctly
+	bs.ShiftLeft(63)
+	c.Assert(bs.data[1], Equals, uint64(1))
+	c.Assert(bs.data[0], Equals, uint64(0))
+	c.Assert(bs.length, Equals, 128)
+	c.Assert(len(bs.data), Equals, 2)
 }

@@ -57,31 +57,6 @@ func (t *BitSlice) Set(index int) error {
 	return nil
 }
 
-func (t *BitSlice) Or(bslice *BitSlice) {
-	if len(bslice.data) > len(t.data) {
-		diff := len(bslice.data) - len(t.data)
-		pre := make([]uint64, diff)
-		t.data = append(pre, t.data...)
-	}
-
-	for i, b := range bslice.data {
-		t.data[i] |= b
-	}
-}
-
-func (t *BitSlice) And(bslice *BitSlice) {
-	// Note: overflow bits on the larger of the two slices
-	// will be zeroed out
-	if len(bslice.data) > len(t.data) {
-		pre := bslice.data[len(t.data):]
-		t.data = append(pre, t.data...)
-	}
-
-	for i, b := range bslice.data {
-		t.data[i] &= b
-	}
-}
-
 func (t *BitSlice) Unset(index int) error {
 	if index < 0 || index > t.length-1 {
 		return fmt.Errorf("Index %d out of range", index)
@@ -92,6 +67,40 @@ func (t *BitSlice) Unset(index int) error {
 	t.data[dataIndex] &^= (uint64(1) << offset)
 
 	return nil
+}
+
+func (t *BitSlice) ShiftLeft(amount int) {
+	add := amount / 64
+	if add > 0 {
+		extra := make([]uint64, add)
+		t.data = append(extra, t.data...)
+		t.length += 64 * add
+		amount -= 64 * add
+	}
+
+	unused := t.unusedSpace()
+	carryAmount := amount - unused
+	if unused < amount {
+		extra := make([]uint64, 1)
+		t.data = append(t.data, extra...)
+	}
+
+	carry := uint64(0)
+	for i := 0; i < len(t.data); i++ {
+		shifted := t.data[i] << uint(amount)
+		newCarry := uint64(0) | (t.data[i] >> uint(64-unused-carryAmount))
+		shifted |= carry
+		carry = newCarry
+		t.data[i] = shifted
+	}
+
+	t.length += amount
+}
+
+func (t *BitSlice) Deepcopy() *BitSlice {
+	nbs := NewBitSlice(t.length)
+	copy(nbs.data, t.data)
+	return nbs
 }
 
 func (t *BitSlice) Append(bslice *BitSlice) {
@@ -111,64 +120,4 @@ func (t *BitSlice) unusedSpace() int {
 		unused = 64 - t.length%64
 	}
 	return unused
-}
-
-func (t *BitSlice) shiftLeft(num int) {
-	// Shifts the bitslice over for up to 64 places (1 uint64) left
-	unused := t.unusedSpace()
-
-	// Expand the data in uint64 if necessary
-	shifted := 0
-	if num > unused {
-		shifted = (num-unused)/64 + 1
-		bs := make([]uint64, shifted)
-		t.data = append(t.data, bs...)
-	}
-
-	t.length += num
-	newUnused := t.unusedSpace()
-	if newUnused > unused {
-		carry := uint64(0)
-		for i, _ := range t.data {
-			old := t.data[i]
-			t.data[i] >>= uint(newUnused - unused)
-			t.data[i] |= (carry << uint(64-newUnused-unused))
-			carry = old & (MAXUINT >> uint(64-newUnused-unused))
-		}
-	} else if unused > newUnused {
-		carry := uint64(0)
-		for i := len(t.data) - 1; i >= 0; i-- {
-			old := t.data[i]
-			t.data[i] <<= uint(unused - newUnused)
-			t.data[i] |= (carry >> uint(64-unused-newUnused))
-			carry = old & (MAXUINT >> uint(64-unused-newUnused))
-		}
-	}
-}
-
-func (t *BitSlice) upperBits(num int) uint64 {
-	// Returns the most significant bits (up to 64) from a bitslice
-	b := uint64(0)
-	if num > 64 {
-		return b
-	}
-
-	bitsLeft := num
-	numBitsUpper := t.length % 64
-	dataNum := t.length / 64
-	for bitsLeft > 0 {
-		if bitsLeft >= numBitsUpper {
-			b |= t.data[dataNum]
-			bitsLeft -= numBitsUpper
-			dataNum--
-			if dataNum < 0 {
-				bitsLeft = 0
-			}
-			b <<= uint(bitsLeft)
-		} else {
-			b |= t.data[dataNum] >> uint(8-bitsLeft)
-			bitsLeft = 0
-		}
-	}
-	return b
 }
