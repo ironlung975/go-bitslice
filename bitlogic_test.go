@@ -145,6 +145,14 @@ func (s *BitSliceSuite) TestBufferOnes(c *C) {
 	}
 }
 
+func (s *BitSliceSuite) TestXor(c *C) {
+	// TODO: Create this
+}
+
+func (s *BitSliceSuite) TestNot(c *C) {
+	// TODO: Create this
+}
+
 func (s *BitSliceSuite) TestCreateMask(c *C) {
 	c.Assert(createMask(3), Equals, uint64(7))
 	c.Assert(createMask(1), Equals, uint64(1))

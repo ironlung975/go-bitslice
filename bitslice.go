@@ -97,6 +97,40 @@ func (t *BitSlice) ShiftLeft(amount int) {
 	t.length += amount
 }
 
+func (t *BitSlice) ShiftRight(amount int) {
+	move := amount / 64
+	for i := move; i > 0; i-- {
+		t.data[i] = t.data[i-1]
+		t.length -= 64
+	}
+
+	if move > 0 {
+		t.data = t.data[:len(t.data)-1-move]
+	}
+	amount -= move * 64
+
+	unused := t.unusedSpace()
+	carryAmount := amount
+	if 64-unused < amount {
+		carryAmount = amount - (64 - unused)
+	}
+
+	carry := (t.data[len(t.data)-1] & createMask(carryAmount)) << uint(64-carryAmount-1)
+	t.data[len(t.data)-1] >>= uint(amount)
+	for i := len(t.data) - 1; i > 0; i-- {
+		newCarry := (t.data[i-1] & createMask(carryAmount)) << uint(64-carryAmount-1)
+		t.data[i-1] >>= uint(amount)
+		t.data[i-1] |= carry
+		carry = newCarry
+	}
+
+	if carryAmount != amount {
+		t.data = t.data[:len(t.data)-1]
+	}
+
+	t.length -= amount
+}
+
 func (t *BitSlice) Deepcopy() *BitSlice {
 	nbs := NewBitSlice(t.length)
 	copy(nbs.data, t.data)
