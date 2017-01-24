@@ -102,6 +102,12 @@ func (s *BitSliceSuite) TestShiftLeftAndModify(c *C) {
 	err := bs.Set(0)
 	c.Assert(err, IsNil)
 
+	// Nothing changed
+	bs.ShiftLeftAndModify(0)
+	c.Assert(bs.data[0], Equals, uint64(1))
+	c.Assert(bs.length, Equals, 64)
+	c.Assert(len(bs.data), Equals, 1)
+
 	bs.ShiftLeftAndModify(1)
 	c.Assert(bs.data[0], Equals, uint64(2))
 	c.Assert(bs.length, Equals, 65)
@@ -118,6 +124,13 @@ func (s *BitSliceSuite) TestShiftRightAndModify(c *C) {
 	bs := NewBitSlice(96)
 	err := bs.Set(95)
 	c.Assert(err, IsNil)
+
+	// Nothing changed
+	bs.ShiftRightAndModify(0)
+	c.Assert(len(bs.data), Equals, 2)
+	c.Assert(bs.data[1], Equals, uint64(2147483648))
+	c.Assert(bs.data[0], Equals, uint64(0))
+	c.Assert(bs.length, Equals, 96)
 
 	bs.ShiftRightAndModify(31)
 	c.Assert(len(bs.data), Equals, 2)
@@ -143,6 +156,6 @@ func (s *BitSliceSuite) AppendRight(c *C) {
 	// TODO: Create this
 }
 
-func (c *BitSliceSuite) AppendLeft(c *C) {
+func (s *BitSliceSuite) AppendLeft(c *C) {
 	// TODO: Create this
 }
