@@ -17,21 +17,54 @@ func (t *BitSlice) Or(bslice *BitSlice) {
 }
 
 func (t *BitSlice) And(bslice *BitSlice) {
+	// Logic for making this operation non-destructive
 	// If one is longer than the other, the excess bits will be carried over and not lost
-	if bslice.length != t.length {
-		if bslice.length > t.length {
-			t.bufferOnes(bslice.length - t.length)
-		} else {
-			bslice.bufferOnes(t.length - bslice.length)
+	/*
+		if bslice.length != t.length {
+			if bslice.length > t.length {
+				t.bufferOnes(bslice.length - t.length)
+			} else {
+				bslice.bufferOnes(t.length - bslice.length)
+			}
 		}
-	}
+	*/
 
 	if bslice.length > t.length {
 		t.length = bslice.length
+
+		if len(bslice.data) > len(t.data) {
+			extra := make([]uint64, len(bslice.data)-len(t.data))
+			t.data = append(t.data, extra...)
+		}
 	}
 
 	for i, b := range bslice.data {
 		t.data[i] &= b
+	}
+}
+
+func (t *BitSlice) Xor(bslice *BitSlice) {
+	if bslice.length > t.length {
+		t.length = bslice.length
+
+		if len(bslice.data) > len(t.data) {
+			extra := make([]uint64, len(bslice.data)-len(t.data))
+			t.data = append(t.data, extra...)
+		}
+	}
+
+	for i, b := range bslice.data {
+		t.data[i] ^= b
+	}
+}
+
+func (t *BitSlice) Not() {
+	for i := 0; i < len(t.data); i++ {
+		t.data[i] = ^t.data[i]
+		if i == len(t.data)-1 {
+			mask := createMask(64 - t.unusedSpace())
+			t.data[i] &= mask
+		}
 	}
 }
 

@@ -135,6 +135,12 @@ func (t *BitSlice) ShiftRightAndModify(amount int) {
 	}
 }
 
+func (t *BitSlice) ShiftLeft(amount int) {
+	if amount > 0 {
+		// TODO: Fill in the carry and shift
+	}
+}
+
 func (t *BitSlice) Deepcopy() *BitSlice {
 	nbs := NewBitSlice(t.length)
 	copy(nbs.data, t.data)

@@ -109,7 +109,7 @@ func (s *BitSliceSuite) TestAnd(c *C) {
 		bs1.And(bs2)
 		c.Assert(bs1.length, Equals, 96)
 		c.Assert(bs1.data, HasLen, 2)
-		c.Assert(bs1.data[1], Equals, uint64(2))
+		c.Assert(bs1.data[1], Equals, uint64(0))
 		c.Assert(bs1.data[0], Equals, uint64(0))
 	}
 }
@@ -146,11 +146,78 @@ func (s *BitSliceSuite) TestBufferOnes(c *C) {
 }
 
 func (s *BitSliceSuite) TestXor(c *C) {
-	// TODO: Create this
+	// Test that it works on equally sized bitslices
+	{
+		bs1 := NewBitSlice(64)
+		err := bs1.Set(0)
+		c.Assert(err, IsNil)
+
+		bs2 := NewBitSlice(64)
+		err = bs2.Set(1)
+		c.Assert(err, IsNil)
+
+		bs1.Xor(bs2)
+		c.Assert(bs1.length, Equals, 64)
+		c.Assert(bs1.data, HasLen, 1)
+		c.Assert(bs1.data[0], Equals, uint64(3))
+	}
+
+	// Test working on unequally sized bitslices represented by same number of buffers
+	{
+		bs1 := NewBitSlice(128)
+		err := bs1.Set(70)
+		c.Assert(err, IsNil)
+		err = bs1.Set(64)
+		c.Assert(err, IsNil)
+
+		bs2 := NewBitSlice(80)
+		err = bs2.Set(2)
+		c.Assert(err, IsNil)
+		err = bs2.Set(64)
+		c.Assert(err, IsNil)
+
+		bs1.Xor(bs2)
+		c.Assert(bs1.length, Equals, 128)
+		c.Assert(bs1.data[1], Equals, uint64(64))
+		c.Assert(bs1.data[0], Equals, uint64(4))
+	}
+
+	// Test that it works on unequally sized bitslices represented by a different number of buffers
+	{
+		bs1 := NewBitSlice(64)
+		err := bs1.Set(0)
+		c.Assert(err, IsNil)
+
+		bs2 := NewBitSlice(96)
+		err = bs2.Set(65)
+		c.Assert(err, IsNil)
+
+		bs1.Xor(bs2)
+		c.Assert(bs1.length, Equals, 96)
+		c.Assert(bs1.data, HasLen, 2)
+		c.Assert(bs1.data[1], Equals, uint64(2))
+		c.Assert(bs1.data[0], Equals, uint64(1))
+	}
 }
 
 func (s *BitSliceSuite) TestNot(c *C) {
-	// TODO: Create this
+	bs := NewBitSlice(96)
+	for i := 0; i < bs.length; i++ {
+		if i == 0 {
+			continue
+		} else if i == 65 {
+			continue
+		}
+
+		err := bs.Set(i)
+		c.Assert(err, IsNil)
+	}
+
+	bs.Not()
+	c.Assert(bs.length, Equals, 96)
+	c.Assert(bs.data, HasLen, 2)
+	c.Assert(bs.data[0], Equals, uint64(1))
+	c.Assert(bs.data[1], Equals, uint64(2))
 }
 
 func (s *BitSliceSuite) TestCreateMask(c *C) {
