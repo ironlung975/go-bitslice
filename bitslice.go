@@ -80,7 +80,7 @@ func (t *BitSlice) ShiftLeftAndModify(amount int) {
 		}
 
 		unused := t.unusedSpace()
-		carryAmount := amount - unused
+		carryAmount := amount
 		if unused < amount {
 			extra := make([]uint64, 1)
 			t.data = append(t.data, extra...)
@@ -88,8 +88,12 @@ func (t *BitSlice) ShiftLeftAndModify(amount int) {
 
 		carry := uint64(0)
 		for i := 0; i < len(t.data); i++ {
+			if i == len(t.data)-2 && amount > unused {
+				carryAmount = amount - unused
+			}
+
 			shifted := t.data[i] << uint(amount)
-			newCarry := uint64(0) | (t.data[i] >> uint(64-unused-carryAmount))
+			newCarry := uint64(0) | (t.data[i] >> uint(64-carryAmount))
 			shifted |= carry
 			carry = newCarry
 			t.data[i] = shifted
@@ -103,7 +107,9 @@ func (t *BitSlice) ShiftRightAndModify(amount int) {
 	if amount > 0 {
 		move := amount / 64
 		for i := move; i > 0; i-- {
-			t.data[i] = t.data[i-1]
+			for j := len(t.data) - 1; j > 0; j-- {
+				t.data[j] = t.data[j-1]
+			}
 			t.length -= 64
 		}
 
@@ -112,23 +118,19 @@ func (t *BitSlice) ShiftRightAndModify(amount int) {
 		}
 		amount -= move * 64
 
-		unused := t.unusedSpace()
-		carryAmount := amount
-		if 64-unused < amount {
-			carryAmount = amount - (64 - unused)
-		}
+		if amount > 0 {
+			carry := (t.data[len(t.data)-1] & createMask(amount)) << uint(64-amount)
+			t.data[len(t.data)-1] >>= uint(amount)
+			for i := len(t.data) - 2; i >= 0; i-- {
+				newCarry := (t.data[i] & createMask(amount)) << uint(64-amount)
+				t.data[i] >>= uint(amount)
+				t.data[i] |= carry
+				carry = newCarry
+			}
 
-		carry := (t.data[len(t.data)-1] & createMask(carryAmount)) << uint(64-carryAmount-1)
-		t.data[len(t.data)-1] >>= uint(amount)
-		for i := len(t.data) - 1; i > 0; i-- {
-			newCarry := (t.data[i-1] & createMask(carryAmount)) << uint(64-carryAmount-1)
-			t.data[i-1] >>= uint(amount)
-			t.data[i-1] |= carry
-			carry = newCarry
-		}
-
-		if carryAmount != amount {
-			t.data = t.data[:len(t.data)-1]
+			if amount > 64-t.unusedSpace() {
+				t.data = t.data[:len(t.data)-1]
+			}
 		}
 
 		t.length -= amount
@@ -137,7 +139,35 @@ func (t *BitSlice) ShiftRightAndModify(amount int) {
 
 func (t *BitSlice) ShiftLeft(amount int) {
 	if amount > 0 {
-		// TODO: Fill in the carry and shift
+		unused := t.unusedSpace()
+		carryAmount := amount
+
+		carry := uint64(0)
+		for i := 0; i < len(t.data); i++ {
+			// TODO: Handle/Prevent overflow errors
+			shifted := t.data[i] << uint(amount)
+			newCarry := uint64(0) | (t.data[i] >> uint(64-carryAmount))
+			shifted |= carry
+			carry = newCarry
+			t.data[i] = shifted
+
+			if i == len(t.data)-1 {
+				t.data[i] &= createMask(64 - unused)
+			}
+		}
+	}
+}
+
+func (t *BitSlice) ShiftRight(amount int) {
+	if amount > 0 {
+		carry := (t.data[len(t.data)-1] & createMask(amount)) << uint(64-amount)
+		t.data[len(t.data)-1] >>= uint(amount)
+		for i := len(t.data) - 2; i >= 0; i-- {
+			newCarry := (t.data[i] & createMask(amount)) << uint(64-amount)
+			t.data[i] >>= uint(amount)
+			t.data[i] |= carry
+			carry = newCarry
+		}
 	}
 }
 
