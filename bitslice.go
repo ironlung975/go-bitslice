@@ -177,15 +177,26 @@ func (t *BitSlice) Deepcopy() *BitSlice {
 	return nbs
 }
 
-func (t *BitSlice) Append(bslice *BitSlice) {
-	// TODO: FILL THIS IN
-	// Resize
-	//newDataSize := (t.length + bslice.length) / 8
-	unused := 0
-	if t.length%8 != 0 {
-		unused = 8 - t.length%8
+func (t *BitSlice) AppendRight(bslice *BitSlice) {
+	t.ShiftLeftAndModify(bslice.length)
+	for i, val := range bslice.data {
+		t.data[i] |= val
 	}
-	fmt.Println(unused)
+}
+
+func (t *BitSlice) AppendLeft(bslice *BitSlice) {
+	// Add enough extra space to hold the new slice
+	needed := bslice.length - t.unusedSpace()
+	if needed > 0 {
+		extra := make([]uint64, (needed/64)+1)
+		t.data = append(t.data, extra...)
+	}
+	temp := bslice.Deepcopy()
+	temp.ShiftLeftAndModify(t.length)
+	for i, val := range temp.data {
+		t.data[i] |= val
+	}
+	t.length = t.length + bslice.length
 }
 
 func (t *BitSlice) unusedSpace() int {
